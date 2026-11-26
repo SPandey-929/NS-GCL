@@ -4,7 +4,7 @@ from torch import nn
 
 
 class GraphConvolution(nn.Module):
-    """One graph-convolution layer: H' = activation(A_norm H W + b)."""
+    """One graph-convolution layer: H' = A_norm H W + b."""
     def __init__(self, in_features, out_features, bias=True):
         super().__init__()
         self.linear = nn.Linear(in_features, out_features, bias=bias)
@@ -16,10 +16,13 @@ class GraphConvolution(nn.Module):
             normalized_adjacency = normalized_adjacency.unsqueeze(0)
         if normalized_adjacency.ndim != 3:
             raise ValueError("Adjacency must have shape (batch, nodes, nodes).")
-        if normalized_adjacency.shape[0] not in (1, node_features.shape[0]):
+        batch, nodes, _ = node_features.shape
+        if normalized_adjacency.shape[0] == 1:
+            normalized_adjacency = normalized_adjacency.expand(batch, -1, -1)
+        elif normalized_adjacency.shape[0] != batch:
             raise ValueError("Adjacency batch dimension is incompatible.")
-        if normalized_adjacency.shape[-1] != node_features.shape[1]:
-            raise ValueError("Adjacency node count differs from node features.")
+        if normalized_adjacency.shape[1:] != (nodes, nodes):
+            raise ValueError("Adjacency dimensions must match the node count.")
         support = self.linear(node_features)
         return torch.bmm(normalized_adjacency, support)
 
@@ -38,5 +41,4 @@ class GraphEncoder(nn.Module):
         h = self.activation(self.gcn1(node_features, normalized_adjacency))
         h = self.dropout(h)
         h = self.activation(self.gcn2(h, normalized_adjacency))
-        graph_embedding = h.mean(dim=1)
-        return h, graph_embedding
+        return h, h.mean(dim=1)
