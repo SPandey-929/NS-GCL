@@ -42,7 +42,6 @@ def evaluate(model, loader, device):
 
 
 def train_fold(archive, fold, config, output_dir, device, num_classes):
-    # Fit normalization on training subjects only; transform all partitions.
     scaler = FeatureStandardizer().fit(archive["features"][fold.scaler_fit_indices])
     scaled_features = scaler.transform(archive["features"])
 
@@ -64,8 +63,7 @@ def train_fold(archive, fold, config, output_dir, device, num_classes):
     val_loader = DataLoader(val_dataset, batch_size=eval_batch_size, shuffle=False)
     test_loader = DataLoader(test_dataset, batch_size=eval_batch_size, shuffle=False)
 
-    model_config = dict(config.get("model", {}))
-    model = NSGCLModel(num_classes=num_classes, **model_config).to(device)
+    model = NSGCLModel(num_classes=num_classes, **dict(config.get("model", {}))).to(device)
     optimizer = torch.optim.Adam(
         model.parameters(), lr=float(training_config["learning_rate"]),
         weight_decay=float(training_config.get("weight_decay", 1e-4)))
@@ -88,11 +86,16 @@ def train_fold(archive, fold, config, output_dir, device, num_classes):
                 view2 = batch["view2"].to(device)
                 adjacency = batch["adjacency"].to(device)
                 labels = batch["label"].to(device)
+                # Default DataLoader collation returns subject IDs as a list of strings.
+                subject_ids = batch["subject_id"]
+                trial_ids = batch["trial_id"].to(device)
 
                 output1 = model(view1, adjacency)
                 output2 = model(view2, adjacency)
                 losses = model.loss(
                     output1, output2, labels,
+                    subject_ids=subject_ids,
+                    trial_ids=trial_ids,
                     lambda_contrastive=float(
                         training_config.get("lambda_contrastive", 0.1)))
 
@@ -102,12 +105,9 @@ def train_fold(archive, fold, config, output_dir, device, num_classes):
                 if clip is not None:
                     torch.nn.utils.clip_grad_norm_(model.parameters(), float(clip))
                 optimizer.step()
-
                 total_losses.append(float(losses["loss"].detach().cpu()))
-                classification_losses.append(
-                    float(losses["classification_loss"].detach().cpu()))
-                contrastive_losses.append(
-                    float(losses["contrastive_loss"].detach().cpu()))
+                classification_losses.append(float(losses["classification_loss"].detach().cpu()))
+                contrastive_losses.append(float(losses["contrastive_loss"].detach().cpu()))
 
             y_val, pred_val = evaluate(model, val_loader, device)
             val_metrics = classification_metrics(
@@ -122,7 +122,6 @@ def train_fold(archive, fold, config, output_dir, device, num_classes):
             }
             writer.writerow(row)
             stream.flush()
-
             score = val_metrics["f1_macro"]
             if score > best_score:
                 best_score, best_epoch, stale_epochs = score, epoch, 0
@@ -175,7 +174,6 @@ def main():
         config = yaml.safe_load(stream)
     seed = int(config.get("seed", 42))
     set_seed(seed)
-
     archive = load_feature_archive(args.data)
     classes = np.unique(archive["labels"])
     if not np.array_equal(classes, np.arange(classes.size)) or classes.size < 2:
@@ -184,12 +182,12 @@ def main():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
-    results = []
     folds = make_loso_folds(
         archive["subject_ids"],
         validation_subject_count=int(
             config["training"].get("validation_subject_count", 1)),
         random_state=seed)
+    results = []
     for fold in folds:
         print(f"Training fold with held-out subject: {fold.held_out_subject}")
         results.append(train_fold(
@@ -204,7 +202,6 @@ def main():
         writer.writeheader()
         for result in results:
             writer.writerow({key: result[key] for key in csv_fields})
-
     summary = {"subjects": len(results), "metrics": {}}
     for key in ("accuracy", "balanced_accuracy", "precision_macro",
                 "recall_macro", "f1_macro"):
