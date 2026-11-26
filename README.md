@@ -12,6 +12,26 @@ The author has confirmed 4–30 Hz band-pass filtering and non-overlapping 3-sec
 
 A complete DEAP-to-feature-archive command is not yet available. Baseline handling, the exact DEAP file release, ICA artifact-component identification, wavelet family/level, graph parameters, and final feature tensor construction still need to be specified and implemented. Also, a 4–30 Hz signal cannot contain conventional delta 1–4 Hz and gamma 30–45 Hz components; the manuscript's five-band description needs reconciliation. See `docs/deap_preprocessing_audit.md`.
 
+
+## DEAP preprocessed MATLAB pipeline
+
+For the common provider-preprocessed MATLAB release, use:
+
+```python
+from preprocessing.deap_pipeline import prepare_preprocessed_deap_file
+windows, labels, window_meta = prepare_preprocessed_deap_file(
+    "data/DEAP/data_preprocessed_matlab/s01.mat"
+)
+```
+
+The utility expects 128-Hz files with either 8064 samples per trial (63 s, including the initial 3-s baseline interval) or 7680 samples (60-s stimulus already isolated). It does not downsample, repeat ICA/EOG artifact processing, or perform baseline subtraction. When 8064 samples are present, it discards the initial 384 baseline samples, applies the manuscript's additional 4–30 Hz analysis filter, and creates non-overlapping 384-sample (3-s) windows. For the common 40-trial, 11-channel file, the expected output is 800 windows with shape `(800, 11, 384)`.
+
+This output is filtered time-domain data, not yet the final manuscript wavelet/graph feature archive. Confirm the downloaded release's dimensions and processing notes before use. Focused software tests:
+
+```bash
+python -m pytest tests/test_deap_preprocessed_pipeline.py -q
+```
+
 ## Synthetic archive: software tests only
 
 ```bash
