@@ -16,6 +16,7 @@ The repository contains initial DEAP preprocessing, functional-connectivity grap
 - Spatial-temporal concatenation, projection, and masked/unmasked pooling.
 - NSGCLRepresentationEncoder composes the CNN, GCN, temporal encoder, and fusion modules.
 - Contrastive projection head and symmetric cosine InfoNCE (NT-Xent) loss for two augmented views of each sample.
+- FAA and beta-band PLV feature extraction, plus a differentiable neuro-symbolic regularizer with explicit physiological sign and probability inputs.
 
 See docs/graph_and_encoder.md and docs/temporal_fusion.md for tensor shapes and assumptions.
 
@@ -63,9 +64,13 @@ DEAP must be obtained from its official provider under the applicable data-use t
 
 See docs/contrastive_learning.md for the positive/negative pairing assumption and loss definition. The current InfoNCE implementation treats two augmentations of the same sample as a positive pair and all other views in the minibatch as negatives. This is instance-level self-supervised pairing; confirm it matches the manuscript's actual pair-construction protocol before reporting it as the experimental method.
 
+## Neuro-symbolic regularization
+
+See docs/neuro_symbolic_regularization.md for FAA/PLV definitions, loss equations, sign-convention requirements, and validation cautions. FAA uses ln(alpha PSD at F4) minus ln(alpha PSD at F3). The regularizer requires an explicit FAA direction and caller-supplied positive-valence, negative-valence, and high-arousal probabilities; it does not assume universal class indices or a universal physiological sign. Physiological descriptors are precomputed and treated as fixed inputs.
+
 ## Remaining work
 
-The classifier, FAA/beta-PLV neuro-symbolic loss, complete LOSO training/evaluation, statistical analysis, and reproduction of manuscript tables remain to be implemented and validated.
+The classifier integration, exact manuscript-matched contrastive candidate-pool rules, complete LOSO training/evaluation, statistical analysis, and reproduction of manuscript tables remain to be implemented and validated.
 
 ## Citation and license
 
