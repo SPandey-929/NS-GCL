@@ -18,7 +18,7 @@ def test_feature_standardizer_uses_only_fit_array():
     train = np.ones((3, 2, 4, 5, 6), dtype=np.float32) * 2
     heldout = np.ones((2, 2, 4, 5, 6), dtype=np.float32) * 100
     scaler = FeatureStandardizer().fit(train)
-    assert scaler.mean_ == 2.0 and np.all(scaler.transform(heldout) > 0)
+    assert np.allclose(scaler.mean_, 2.0) and np.all(scaler.transform(heldout) > 0)
 
 def test_metrics_report_macro_and_confusion_matrix():
     result = classification_metrics([0, 1, 1, 0], [0, 1, 0, 0], labels=[0, 1])
