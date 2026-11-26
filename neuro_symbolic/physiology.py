@@ -38,7 +38,10 @@ def compute_frontal_alpha_asymmetry(
     band = (frequencies >= low) & (frequencies <= high)
     if not np.any(band):
         raise ValueError("No Welch frequency bins fall inside the alpha band.")
-    # NumPy 2.0 renamed trapz to trapezoid; retain compatibility with\n    # the NumPy >=1.24 versions allowed by requirements.txt.\n    integrate = np.trapezoid if hasattr(np, "trapezoid") else np.trapz\n    power = integrate(psd[..., band], frequencies[band], axis=-1)
+    # NumPy 2.0 renamed trapz to trapezoid; retain compatibility with
+    # the NumPy >=1.24 versions allowed by requirements.txt.
+    integrate = np.trapezoid if hasattr(np, "trapezoid") else np.trapz
+    power = integrate(psd[..., band], frequencies[band], axis=-1)
     left_power, right_power = power[:, 0], power[:, 1]
     return (np.log(right_power + epsilon) -
             np.log(left_power + epsilon)).astype(np.float32)
