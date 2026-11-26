@@ -70,6 +70,29 @@ See docs/integrated_nsgcl.md for the selected manuscript pairing strategy: two i
 
 See docs/neuro_symbolic_regularization.md for FAA/PLV definitions, loss equations, sign-convention requirements, and validation cautions. FAA uses ln(alpha PSD at F4) minus ln(alpha PSD at F3). The regularizer requires an explicit FAA direction and caller-supplied positive-valence, negative-valence, and high-arousal probabilities; it does not assume universal class indices or a universal physiological sign. Physiological descriptors are precomputed and treated as fixed inputs.
 
+## LOSO pipeline (initial implementation)
+
+A subject-wise training scaffold is provided in `scripts/train_loso.py`.
+It expects a prepared NPZ feature archive; see `docs/loso_pipeline.md` for
+the exact required arrays and run command. Each fold reserves one complete
+subject for testing and one separate training-pool subject for validation.
+Per-electrode feature normalization is fitted on training subjects only.
+The pipeline generates two independent augmented views per training epoch,
+trains with supervised cross-entropy plus InfoNCE, selects a checkpoint by
+validation macro-F1, and evaluates the held-out subject. Per-subject and
+aggregate metrics are saved to the output directory.
+
+Paired t-test and Wilcoxon utilities for matched subject-level model
+comparisons are in `training/statistics.py`. They require comparable
+per-subject scores from two methods; they do not automatically establish
+statistical significance for unrun experiments.
+
+The current LOSO training script does not yet add the neuro-symbolic penalty.
+The FAA sign, valence probability mapping, and high-arousal mapping must be
+specified from the actual dataset annotations and manuscript before this
+term can be included safely. The raw-to-time-frequency feature archive
+builder is also not yet complete. See `docs/loso_pipeline.md`.
+
 ## Remaining work
 
 The integrated classifier and same-sample contrastive pair generation are implemented and have synthetic unit tests. The full LOSO training/evaluation pipeline, fold-wise preprocessing, experiment logging, statistical analysis, and reproduction of manuscript tables remain to be implemented and validated.
