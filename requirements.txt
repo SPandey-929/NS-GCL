@@ -1,10 +1,5 @@
-# Initial dependency baseline; exact versions will be pinned after implementation tests.
-numpy
-scipy
-pandas
-scikit-learn
-PyWavelets
-matplotlib
-PyYAML
-torch
-pytest
+numpy>=1.24
+scipy>=1.10
+scikit-learn>=1.2
+PyYAML>=6.0
+pytest>=7.0
