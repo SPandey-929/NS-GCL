@@ -26,6 +26,8 @@ The intended input is the provider's preprocessed MATLAB release. A common file 
 
 The preprocessing function does not downsample, run ICA/EOG removal, or subtract a baseline again. It trims the initial 3 seconds if present, applies the manuscript's 4–30 Hz analysis filter, selects the manuscript's 11 named EEG electrodes, and segments the 60-second stimulus into 20 non-overlapping 3-second windows.
 
+**Filter implementation caveat:** the manuscript specifies the 4–30 Hz cutoffs but does not state the filter family, order, or phase handling. The current code uses a fourth-order Butterworth filter with zero-phase forward/backward application as a provisional repository choice. This is not verified as the original experimental implementation. See `configs/deap.yaml` and `docs/deap_preprocessing_audit.md`.
+
 Check one participant file locally:
 
 ```python
