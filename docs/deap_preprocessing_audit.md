@@ -64,3 +64,10 @@ Section 4.2 lists delta (1–4 Hz), theta (4–8 Hz), alpha (8–13 Hz), beta (1
 2. the actual wavelet feature branch was restricted to frequencies within 4–30 Hz and the five-band description needs correction.
 
 Do not generate, label, or publish five-band features from the 4–30 Hz signal. Do not claim the final feature-generation pipeline is manuscript-reproduced until this is resolved.
+
+
+## Wavelet settings confirmed and still unresolved
+
+The author has confirmed DWT, Daubechies-4 (`db4`), and separate processing of each frequency band. Inspection of the manuscript and the repository's `configs/deap.yaml`, `configs/loso_deap.yaml`, and `configs/graph.yaml` found no record of the DWT decomposition level, coefficient representation, boundary-extension mode, coefficient normalization, band-filter definitions, or final feature-map dimensions. The manuscript itself does not mention `db4`.
+
+See `docs/wavelet_feature_specification.md` for the full evidence audit and the exact original experimental records required. No manuscript-specific wavelet extractor should be implemented until those records are located.
