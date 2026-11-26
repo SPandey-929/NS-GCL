@@ -48,10 +48,89 @@ print(windows.shape, labels.shape, window_meta.shape)
 
 Expected shapes for the common 40-trial release: `(800, 11, 384)`, `(800, 4)`, and `(800, 2)`. This is filtered-window output, not yet the manuscript's final time-frequency feature archive.
 
-Run focused tests:
+## Real feature-archive schema 1.1
+
+The NPZ loader requires six arrays: `features`, `labels`, `subject_ids`,
+`trial_ids`, `adjacency`, and scalar JSON string `metadata_json`.
+Features have shape `(N, sequence, electrodes, frequency_bins, time_bins)`.
+Labels and trial IDs are integer arrays of length N; subject IDs are integer
+or string arrays of length N. Adjacency may be shared `(E,E)`,
+sample-specific `(N,E,E)`, or sequence-specific `(N,sequence,E,E)`.
+
+Synthetic archives remain compatible with schema 1.0 and must explicitly
+identify synthetic provenance. Real archives require metadata schema 1.1 and
+the following additional traceability fields:
+
+| Field | Required information |
+|---|---|
+| `dataset_version`, `source_release` | Exact dataset version and source/release description |
+| `feature_generation` | Method, parameter object, and parameter status |
+| `frequency_bands_hz` | Named band edges, or null if not applicable |
+| `label_mapping` | Class names and explicit threshold/equality/mapping rule |
+| `graph_construction` | Connectivity, sparsification, and normalization |
+| `evaluation_protocol` | Strategy, split definition, validation policy |
+| `software_environment` | Python version and package-version map |
+| `data_access` | Access status and usage/permission note |
+
+Base metadata remains mandatory: dataset name, feature method, channel names,
+sampling rate, preprocessing description, and random seed. Unresolved values
+must be represented explicitly rather than guessed. For example, a DWT level
+may remain null while `parameter_status` is `partially_confirmed`.
+The validator checks presence and basic structure; it does not certify
+scientific correctness or prove that the stated operations were performed.
+
+A minimal schema illustration (not a completed experimental record):
+
+```json
+{
+  "schema_version": "1.1",
+  "provenance": "real",
+  "dataset_name": "DEAP",
+  "dataset_version": "record exact downloaded release",
+  "source_release": "record provider release and file variant",
+  "feature_method": "time_frequency_features",
+  "channel_names": ["F3", "F4"],
+  "sampling_rate_hz": 128,
+  "preprocessing": {"record exact steps and parameters": true},
+  "random_seed": 42,
+  "feature_generation": {
+    "method": "DWT",
+    "parameters": {"wavelet": "db4", "level": null},
+    "parameter_status": "partially_confirmed"
+  },
+  "frequency_bands_hz": null,
+  "label_mapping": {
+    "class_names": ["negative", "positive"],
+    "rule": "record exact threshold and equality handling"
+  },
+  "graph_construction": {
+    "connectivity": "record method",
+    "sparsification": "record method and parameters",
+    "normalization": "record method"
+  },
+  "evaluation_protocol": {
+    "strategy": "LOSO",
+    "split_definition": "record held-out subject/fold assignment",
+    "validation_policy": "record validation subject selection"
+  },
+  "software_environment": {
+    "python": "record exact version",
+    "packages": {"numpy": "record exact version", "torch": "record exact version"}
+  },
+  "data_access": {
+    "access_status": "authorized",
+    "usage_note": "record applicable access/use terms; do not include credentials"
+  }
+}
+```
+
+This example contains placeholders and must not be copied as if it described
+an actual experiment.
+
+Run the archive tests:
 
 ```bash
-python -m pytest tests/test_deap_preprocessed_pipeline.py -q
+python -m pytest tests/test_synthetic_archive.py -q
 ```
 
 ## Synthetic software check
