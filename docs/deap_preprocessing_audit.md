@@ -1,42 +1,46 @@
 # DEAP preprocessing protocol audit
 
-## Author-confirmed settings
+## Author-confirmed manuscript settings
 
-The author has confirmed that the controlling DEAP settings are:
-- Band-pass filtering: 4–30 Hz.
+- Analysis band-pass: 4–30 Hz.
 - Segmentation: non-overlapping 3-second windows.
+- Selected electrodes: Fp1, Fp2, F3, Fz, F4, C3, Cz, C4, P3, Pz, P4.
 
-These settings supersede the conflicting 4–45 Hz / one-second description in an earlier manuscript excerpt. The code defaults in `preprocessing/filtering.py` and `preprocessing/segmentation.py` match the confirmed filter range and window duration.
+## Input release and operations that must not be repeated
 
-## Manuscript-to-code comparison
+The intended input is the provider's preprocessed DEAP MATLAB release (`data_preprocessed_matlab`). The commonly distributed preprocessed files are sampled at 128 Hz and are supplied with provider-side signal processing, including EOG-related artifact processing and 4–45 Hz filtering. A common trial array has shape `(40 trials, 40 channels, 8064 samples)`: 32 EEG channels plus 8 peripheral channels, with 63 seconds per trial.
 
-| Processing step | Confirmed manuscript protocol / status | Repository status |
-|---|---|---|
-| MATLAB loading | DEAP participant files | `load_deap_mat` supports common trial-wise `data` / `labels` arrays; exact source release and variable shapes must still be checked |
-| EEG channels | 11 selected channels: Fp1, Fp2, F3, Fz, F4, C3, Cz, C4, P3, Pz, P4 | Name-based channel selection is implemented |
-| Filtering | 4–30 Hz | Zero-phase Butterworth implementation; default matches |
-| Segmentation | 3 seconds, non-overlapping | Implemented; at 128 Hz this is 384 samples per window |
-| Baseline correction | Not yet confirmed for the actual DEAP file variant | Optional utility only; must not be enabled by assumption |
-| ICA | Manuscript states artifact removal, but component-selection method is not specified in enough detail | Optional manual FastICA utility; no automatic artifact detection |
-| Normalization | Z-score | Channel-wise scaler exists; fit it on training-subject data only in each LOSO fold |
-| Time-frequency representation | Wavelet decomposition is described | Exact wavelet family, level, coefficient/scalogram construction, and binning are not yet implemented as a manuscript-verified step |
-| Graph construction | Connectivity graph | Verify frequency band, edge estimator, threshold/top-k and normalization settings against the final method description |
+Accordingly, for this input variant, NS-GCL must:
+- NOT downsample these files again.
+- NOT run ICA or repeat provider-side EOG/artifact processing.
+- NOT apply a second baseline subtraction.
+- Remove the first 3 seconds (384 samples at 128 Hz) from 63-second trials as the pre-stimulus baseline interval; this is trimming, not baseline correction.
+- Accept a 60-second / 7680-sample trial if the baseline interval has already been removed.
+- Apply the manuscript's narrower 4–30 Hz analysis filter to the remaining stimulus signal.
+- Segment the 60-second stimulus into 20 non-overlapping windows of 3 seconds (384 samples each).
 
-## Important frequency-band inconsistency
+The precise release and its accompanying documentation must be checked locally before processing. Do not infer its history from the filename alone.
 
-The manuscript lists delta (1–4 Hz), theta (4–8 Hz), alpha (8–13 Hz), beta (13–30 Hz), and gamma (30–45 Hz). However, the author-confirmed 4–30 Hz filter removes frequencies below 4 Hz and above 30 Hz. Therefore, the filtered signal cannot contain the conventional delta 1–4 Hz or gamma 30–45 Hz components. The current 4–30 Hz signal can support theta, alpha, and beta analysis (subject to filter transition characteristics).
+## Repository implementation
 
-Do not claim five-band delta/theta/alpha/beta/gamma features from a signal filtered at 4–30 Hz. The authors must either:
-1. revise the manuscript's frequency-band list to bands supported by the confirmed filter, or
-2. confirm that a separate unfiltered / differently filtered signal is used for the five-band decomposition and document that separate branch.
+`preprocessing/deap_pipeline.py` provides `prepare_preprocessed_deap_file`, which loads a participant file, selects the named 11 electrodes, checks for 8064 or 7680 samples per trial at 128 Hz, trims the baseline interval only when present, applies 4–30 Hz filtering, and segments into 3-second windows. It deliberately has no downsampling, baseline-subtraction, or ICA step.
 
-## Remaining information needed to complete feature-generation verification
+Run focused tests:
 
-1. Exact DEAP file release: raw 512-Hz data or preprocessed 128-Hz data. Do not downsample a 128-Hz release again.
-2. Whether baseline correction is applied to this release, and how the baseline interval is identified.
-3. ICA implementation and artifact-component identification/rejection rule. Manual component indices cannot be generalized across participants.
-4. Exact wavelet family, decomposition level, coefficient/scalogram representation, frequency-bin mapping, and treatment of edge coefficients.
-5. Whether the graph is built from raw filtered epochs or from band-specific signals, and the exact connectivity/sparsification parameters.
-6. Exact feature tensor shape supplied to the CNN/GCN/Transformer.
+```bash
+python -m pytest tests/test_deap_preprocessed_pipeline.py -q
+```
 
-Until these are specified and the complete conversion is implemented and tested against an authorized DEAP file, the repository preprocessing utilities should not be described as a fully reproduced manuscript feature-generation pipeline.
+## Frequency-band consistency
+
+A 4–30 Hz analysis filter cannot retain conventional delta 1–4 Hz or gamma 30–45 Hz. Do not report five-band delta/theta/alpha/beta/gamma features as being extracted from this filtered signal. The manuscript must either restrict this branch to compatible bands or describe and justify a separate signal branch for other frequency ranges.
+
+## Remaining items before claiming complete manuscript reproduction
+
+1. Verify the exact DEAP release and inspect participant file dimensions/keys and accompanying processing notes.
+2. Confirm the manuscript's time-frequency transform details (wavelet family, decomposition level, coefficient/scalogram representation, frequency-bin mapping).
+3. Confirm graph estimator, band, sparsification, and normalization settings.
+4. Confirm final feature tensor shape and label threshold/equality rule.
+5. Verify end-to-end conversion on authorized participant data and record archive metadata.
+
+Until these are complete, the function is a preprocessing utility for the specified common file layouts, not a claim that the complete manuscript feature-generation and model pipeline has been reproduced.
