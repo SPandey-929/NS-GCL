@@ -44,3 +44,23 @@ A 4–30 Hz analysis filter cannot retain conventional delta 1–4 Hz or gamma 3
 5. Verify end-to-end conversion on authorized participant data and record archive metadata.
 
 Until these are complete, the function is a preprocessing utility for the specified common file layouts, not a claim that the complete manuscript feature-generation and model pipeline has been reproduced.
+
+
+## Manuscript-specific time-frequency extraction: specification gap
+
+The manuscript's Section 3.2 says that time-frequency representations are obtained using "wavelet decomposition or STFT"; Section 4.2 more specifically says "wavelet decomposition". Neither section specifies the exact transform implementation or its parameters. The manuscript does not identify:
+- Discrete wavelet transform (DWT), wavelet packet transform (WPT), or continuous wavelet transform (CWT).
+- Wavelet family/mother wavelet and its parameters.
+- Decomposition level or scale/frequency grid.
+- Whether the representation uses coefficients, absolute coefficients, squared magnitude/power, or a scalogram.
+- Any coefficient normalization, boundary/extension mode, or output resizing/binning rule.
+
+The code must not select these settings silently. A reproducible extractor can be implemented as a parameterized utility only after the actual transform and parameter values are confirmed from the experiment code/configuration or author records. Until then, no transform-specific defaults are asserted as manuscript settings.
+
+### Frequency-band conflict requiring correction
+
+Section 4.2 lists delta (1–4 Hz), theta (4–8 Hz), alpha (8–13 Hz), beta (13–30 Hz), and gamma (30–45 Hz), while the DEAP protocol specifies 4–30 Hz filtering. A signal filtered to 4–30 Hz cannot support the full conventional delta and gamma bands. The author must confirm whether:
+1. the time-frequency branch used a separate signal before the 4–30 Hz filter, or
+2. the actual wavelet feature branch was restricted to frequencies within 4–30 Hz and the five-band description needs correction.
+
+Do not generate, label, or publish five-band features from the 4–30 Hz signal. Do not claim the final feature-generation pipeline is manuscript-reproduced until this is resolved.
