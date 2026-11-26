@@ -50,3 +50,6 @@ logs/
 .env
 *.pem
 *.key
+
+# Synthetic test archives
+synthetic_data/
