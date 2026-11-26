@@ -41,15 +41,17 @@ class FeatureStandardizer:
         x = np.asarray(features, dtype=np.float32)
         if x.ndim != 5 or x.shape[0] == 0 or not np.isfinite(x).all():
             raise ValueError("Expected finite non-empty 5-D time-frequency features.")
-        self.mean_ = float(x.mean(dtype=np.float64))
-        self.scale_ = max(float(x.std(dtype=np.float64)), self.epsilon)
+        # Per-electrode statistics: (1, 1, electrodes, 1, 1).
+        self.mean_ = x.mean(axis=(0, 1, 3, 4), keepdims=True, dtype=np.float64).astype(np.float32)
+        scale = x.std(axis=(0, 1, 3, 4), keepdims=True, dtype=np.float64).astype(np.float32)
+        self.scale_ = np.maximum(scale, self.epsilon)
         return self
     def transform(self, features):
         if self.mean_ is None:
             raise RuntimeError("Fit the standardizer on training data first.")
         x = np.asarray(features, dtype=np.float32)
-        if x.ndim != 5 or not np.isfinite(x).all():
-            raise ValueError("Expected finite 5-D time-frequency features.")
+        if x.ndim != 5 or x.shape[2] != self.mean_.shape[2] or not np.isfinite(x).all():
+            raise ValueError("Expected finite 5-D features with the fitted electrode count.")
         return ((x - self.mean_) / self.scale_).astype(np.float32)
     def fit_transform(self, features):
         return self.fit(features).transform(features)
