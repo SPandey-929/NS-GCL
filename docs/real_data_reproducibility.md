@@ -4,8 +4,8 @@
 
 The repository does not redistribute EEG recordings.
 
-- DEAP: follow the access procedure and data-use terms on the official [DEAP page](https://www.eecs.qmul.ac.uk/mmv/datasets/deap/download.html).
-- SEED and SEED-IV: obtain them from the official [SEED project portal](https://bcmi.sjtu.edu.cn/home/seed/), subject to its access and use requirements.
+- DEAP: obtain the data through the official [DEAP dataset page](https://www.eecs.qmul.ac.uk/mmv/datasets/deap/download.html) and follow its access and data-use terms.
+- SEED / SEED-IV: use the official [SEED project portal](https://bcmi.sjtu.edu.cn/home/seed/) and follow its access and use requirements.
 
 Keep downloaded data outside the public repository. Do not commit raw recordings, restricted derived data, or credentials.
 
@@ -24,6 +24,16 @@ python -m pytest -q
 
 For GPU-specific PyTorch builds, use the command from the official PyTorch installation selector.
 
+## Confirmed DEAP preprocessing settings
+
+The author has confirmed:
+- 4–30 Hz band-pass filtering.
+- Non-overlapping 3-second segmentation.
+
+The repository defaults match these two settings. The remaining steps (source file release, baseline handling, ICA component identification, wavelet details, graph parameters, and feature tensor layout) are not yet sufficiently specified to claim a complete manuscript-compliant conversion. See `docs/deap_preprocessing_audit.md`.
+
+A 4–30 Hz filter cannot retain conventional delta 1–4 Hz or gamma 30–45 Hz. The manuscript's five-band description must be reconciled before implementing the time-frequency feature generator.
+
 ## Synthetic software check
 
 ```bash
@@ -35,9 +45,7 @@ This is an artificial-data software test, not a real-data experiment.
 
 ## Real-data archive status
 
-The current repository does not yet provide a complete raw-DEAP/SEED/SEED-IV-to-NPZ command. The DEAP protocol also has unresolved manuscript inconsistencies documented in `docs/deap_preprocessing_audit.md`. Before real-data execution, the authors must release the confirmed dataset-specific preprocessing configuration, exact wavelet/STFT implementation, graph settings, and archive-generation command.
-
-When a manuscript-compliant archive is available, inspect it:
+The current repository does not yet provide a complete raw-DEAP/SEED/SEED-IV-to-NPZ feature-generation command. Once the exact preprocessing and feature-generation protocol is finalized and implemented, an archive can be validated with:
 
 ```python
 from data.feature_archive import load_feature_archive
@@ -52,7 +60,7 @@ print(archive["metadata"])
 python -m scripts.train_loso --data path/to/real_features.npz --config configs/loso_deap.yaml --output outputs/real_deap_loso
 ```
 
-The YAML currently contains initial software defaults, not confirmed manuscript hyperparameters. Use dataset-specific settings only after confirming channel layout, sample rate, labels, preprocessing, and model configuration.
+The YAML currently contains initial software defaults, not confirmed manuscript hyperparameters. Do not interpret this command as a completed reproduction until a verified real-data archive and matching configuration are available.
 
 ## Evidence separation
 
