@@ -157,7 +157,7 @@ def main():
     output_dir.mkdir(parents=True, exist_ok=True)
     folds = make_loso_folds(
         archive["subject_ids"],
-        validation_subject_count=int(tc.get("validation_subject_count", 1)),
+        validation_subject_count=int(config["training"].get("validation_subject_count", 1)),
         random_state=seed)
     results = []
     for fold in folds:
