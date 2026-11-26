@@ -1,60 +1,74 @@
 # Wavelet feature-generation specification status
 
-## Confirmed by the author
+## 1. Author-confirmed wavelet choices
 
 | Item | Confirmed value | Evidence |
 |---|---|---|
-| Transform | Discrete Wavelet Transform (DWT) | Author confirmation in the project conversation |
-| Wavelet family | Daubechies-4 (`db4`) | Author confirmation in the project conversation |
-| Frequency-band procedure | Each frequency band is processed separately | Author confirmation in the project conversation |
+| Transform | Discrete Wavelet Transform (DWT) | Author confirmation |
+| Wavelet family | Daubechies-4 (`db4`) | Author confirmation |
+| Frequency-band procedure | Process each frequency band separately | Author confirmation |
 
-These three values are treated as author-confirmed protocol details. They are not inferred from generic EEG practice.
+These values are not inferred from generic EEG practice.
 
-## Inspection of the manuscript and repository configuration
+## 2. Preprocessing details found in the manuscript
 
-The current manuscript (Sections 3.2 and 4.2, and Algorithm 1) says that wavelet decomposition is used to obtain time-frequency and frequency-band information. It lists delta (1–4 Hz), theta (4–8 Hz), alpha (8–13 Hz), beta (13–30 Hz), and gamma (30–45 Hz). It does not state the DWT family, decomposition level, coefficient representation, boundary-extension mode, normalization, coefficient-to-frequency mapping, or feature-map dimensions.
+The manuscript provides the following information:
 
-The repository configurations inspected were:
-- `configs/deap.yaml`
-- `configs/loso_deap.yaml`
-- `configs/graph.yaml`
-
-None contains a wavelet configuration or records the missing DWT parameters. The current repository has no original experiment script/configuration that establishes these values. The manuscript itself contains no occurrence of `db4`.
-
-## Settings deliberately left unresolved
-
-| Parameter | Status | Why it must not be guessed |
+| Processing item | Manuscript statement | Exact implementation detail available? |
 |---|---|---|
-| DWT level | Not found | Determines approximation/detail scales and coefficient lengths |
-| Coefficient representation | Not found | Raw signed coefficients, absolute values, and squared energy are different features |
-| Extension/boundary mode | Not found | Changes coefficients near each epoch boundary |
-| Per-band filtering implementation | Partially specified | “Separate bands” is confirmed, but exact filter design/order and edge handling are not recorded |
-| Band definitions | Listed in manuscript | Must be reconciled with the input signal's existing 4–45 Hz provider filtering and the manuscript's 4–30 Hz analysis filter |
-| Coefficient normalization | Not found | Changes feature scale and can affect downstream learning |
-| Time-frequency image/feature shape | Not found | Needed to match the model input contract |
-| Resizing, padding, or truncation | Not found | Must not be introduced merely to force a tensor shape |
+| DEAP sampling rate | 512 Hz, downsampled to 128 Hz (Section 4.1 / Table 3) | Yes as described experimental history; do not downsample again when using the preprocessed 128-Hz release |
+| Band-pass filtering | 4–30 Hz (Table 3; Section 4.2 says band-pass filtering) | Cutoff range yes; filter type/order/ripple/phase implementation no |
+| Artifact processing | ICA artifact removal for DEAP (Table 3); generic artifact rejection elsewhere | Method named, but ICA algorithm, component selection and rejection criteria not given |
+| Normalization | Z-score normalization for DEAP (Table 3) | Z-score named; axis/scope and fit/apply protocol not stated |
+| Segmentation | 3-second non-overlapping windows (Table 3) | Yes |
+| Time-frequency transform | Wavelet decomposition (Section 4.2) | General method only; DWT/db4 supplied separately by author |
+| Frequency bands | Delta 1–4, theta 4–8, alpha 8–13, beta 13–30, gamma 30–45 Hz (Section 4.2) | Band edges stated |
+| Bandwise extraction | Each band processed separately | Author confirmation |
 
-## Important signal-band compatibility issue
+Important distinction: the manuscript's historical description says the original DEAP recordings were downsampled from 512 to 128 Hz. The repository is intended to start from the provider-preprocessed 128-Hz MATLAB release, so the code must not repeat that downsampling. Likewise, do not repeat provider-side artifact processing. The manuscript's additional 4–30 Hz filter can only be applied after confirming that the chosen input release's prior filtering and the intended branch order make it scientifically appropriate.
 
-The common preprocessed DEAP release is supplied after provider-side filtering in approximately the 4–45 Hz range. If this exact release is used, a separate 1–4 Hz delta band cannot be recovered from it because frequencies below the provider's lower cutoff have already been attenuated. Its 30–45 Hz gamma range may remain available, subject to the exact file version and filter response.
+## 3. DWT parameters not found in manuscript/configuration
 
-The manuscript separately specifies a 4–30 Hz filtering step. That step is not compatible with extracting a conventional 30–45 Hz gamma band from the same filtered signal. A defensible implementation therefore needs an explicitly documented branch design: which signal version is input to each band filter, and whether the 4–30 Hz step applies to the time-domain/graph branch or to all feature branches. Do not silently apply 4–30 Hz before generating gamma.
+Inspection of manuscript Sections 3.2 and 4.2, Algorithm 1, and the current repository configurations (`configs/deap.yaml`, `configs/loso_deap.yaml`, and `configs/graph.yaml`) did not identify:
+- DWT decomposition level;
+- coefficient representation (raw signed coefficients, absolute values, squared magnitude/energy, or other);
+- boundary-extension mode;
+- coefficient normalization;
+- coefficient aggregation, padding, truncation or resizing;
+- final time-frequency feature-map dimensions.
 
-No repeated downsampling, baseline subtraction, or provider-side artifact processing should be added to the preprocessed DEAP input.
+The manuscript itself does not mention `db4`; that wavelet choice is confirmed by the author in the project conversation. None of the inspected config files records the missing DWT parameters.
 
-## Required original experimental record
+## 4. Frequency-band / filtering conflict
 
-Before coding the final feature extractor, locate or provide the original experiment source/configuration (for example, Python/MATLAB script, notebook, YAML/JSON config, saved feature-generation command, or a methods log) that records:
-1. DWT level;
-2. coefficient representation (raw, absolute, power/energy, or another explicit calculation);
-3. extension mode;
-4. exact band-pass filter definitions for each separate band (filter type/order and cutoffs);
-5. signal branch used for each band, including whether the 4–30 Hz filter is applied before or separately from the five-band branch;
-6. coefficient normalization and final feature-map dimensions;
-7. any padding, truncation, resizing, or coefficient aggregation.
+Section 4.2 lists the five conventional bands:
+- delta: 1–4 Hz;
+- theta: 4–8 Hz;
+- alpha: 8–13 Hz;
+- beta: 13–30 Hz;
+- gamma: 30–45 Hz.
 
-Until those records are available, the repository should document DWT + db4 + separate band processing as author-confirmed, but should not implement a purported manuscript-exact extractor. A generic parameterized DWT utility may be added later as a separate optional tool, clearly labeled as such, but it must not be presented as reproducing the reported experiments.
+However, Table 3 states that DEAP is band-pass filtered at 4–30 Hz. If that 4–30 Hz filter is applied to the same signal before bandwise DWT extraction, conventional delta and gamma components cannot be fully represented. In addition, the common provider-preprocessed DEAP release has already undergone provider-side filtering (commonly documented as approximately 4–45 Hz), so a delta band below 4 Hz cannot be reconstructed from that release.
 
-## Current status
+The manuscript does not explain whether:
+1. the 4–30 Hz filter is used for a separate preprocessing/graph branch while bandwise features are derived from another signal; or
+2. the five-band description is generic and the actual DEAP features use only bands supported by the 4–30 Hz preprocessing; or
+3. the authors used a different DEAP release or processing sequence.
 
-**No manuscript-specific wavelet extractor has been implemented or validated.** This is intentional. Software tests on an arbitrarily configured DWT would only validate that arbitrary implementation, not the manuscript's actual feature-generation procedure.
+Do not silently choose one of these interpretations. In particular, do not apply 4–30 Hz globally and then label resulting features as complete delta and gamma bands.
+
+## 5. Original records still required before exact extractor implementation
+
+The manuscript supplies the filter cutoff range, named artifact method, normalization type, epoch duration, and band edges. It does not supply enough detail to reproduce the exact signal-processing implementation.
+
+Please locate the original experimental script/configuration or logs that establish:
+1. exact band-pass filter design (Butterworth/FIR/etc.), order, phase handling, and per-band filter settings;
+2. how the 4–30 Hz preprocessing relates to separate delta/theta/alpha/beta/gamma extraction;
+3. whether DEAP provider-preprocessed files were used, and exactly which processing operations were retained or skipped;
+4. DWT level;
+5. coefficient representation;
+6. boundary-extension mode;
+7. coefficient normalization and final feature dimensions;
+8. ICA/component-rejection details only if an additional ICA stage was truly run beyond provider preprocessing.
+
+Until these are found, repository code may document confirmed manuscript and author statements, but must not claim an exact manuscript-specific DWT feature extractor. No arbitrary wavelet defaults should be selected merely to make the code run.
