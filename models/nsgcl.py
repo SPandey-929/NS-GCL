@@ -3,11 +3,11 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 from .spatiotemporal_encoder import NSGCLRepresentationEncoder
-from .contrastive import ContrastiveProjectionHead, InfoNCELoss
+from .contrastive import ContrastiveProjectionHead, ManuscriptInfoNCELoss
 
 
 class NSGCLModel(nn.Module):
-    """End-to-end encoder, emotion classifier and contrastive projector."""
+    """End-to-end encoder, emotion classifier and manuscript-aligned projector."""
     def __init__(self, num_classes, cnn_channels=32, spatial_dim=64,
                  gcn_hidden_dim=64, temporal_dim=128, temporal_layers=2,
                  temporal_heads=4, temporal_ff_dim=256, fusion_dim=128,
@@ -30,7 +30,8 @@ class NSGCLModel(nn.Module):
         self.projector = ContrastiveProjectionHead(
             input_dim=fusion_dim, hidden_dim=projection_hidden_dim,
             projection_dim=projection_dim, dropout=dropout)
-        self.contrastive_loss = InfoNCELoss(temperature=contrastive_temperature)
+        self.contrastive_loss = ManuscriptInfoNCELoss(
+            temperature=contrastive_temperature)
         self.num_classes = int(num_classes)
 
     def forward(self, time_frequency, adjacency, padding_mask=None):
@@ -41,10 +42,10 @@ class NSGCLModel(nn.Module):
         result["projection"] = self.projector(encoded["clip_embedding"])
         return result
 
-    def loss(self, output_view1, output_view2, labels,
+    def loss(self, output_view1, output_view2, labels, subject_ids, trial_ids,
              lambda_contrastive=0.1, neuro_symbolic_loss=None,
              lambda_neuro_symbolic=0.1):
-        """Combine two-view classification, InfoNCE and optional NS penalty."""
+        """Combine supervised CE, manuscript-aware InfoNCE and optional NS loss."""
         if lambda_contrastive < 0 or lambda_neuro_symbolic < 0:
             raise ValueError("Loss weights must be non-negative.")
         device = output_view1["logits"].device
@@ -55,7 +56,8 @@ class NSGCLModel(nn.Module):
         classification = 0.5 * (
             F.cross_entropy(logits1, labels) + F.cross_entropy(logits2, labels))
         contrastive = self.contrastive_loss(
-            output_view1["projection"], output_view2["projection"])
+            output_view1["projection"], output_view2["projection"],
+            labels=labels, subject_ids=subject_ids, trial_ids=trial_ids)
         if neuro_symbolic_loss is None:
             neuro_symbolic = classification.new_zeros(())
         else:
