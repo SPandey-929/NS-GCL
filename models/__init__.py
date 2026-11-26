@@ -5,10 +5,11 @@ from .temporal_encoder import TemporalTransformerEncoder
 from .spatial_temporal_fusion import SpatialTemporalFusion
 from .spatiotemporal_encoder import NSGCLRepresentationEncoder
 from .contrastive import ContrastiveProjectionHead, InfoNCELoss, NSGCLContrastiveModel
+from .neuro_symbolic import NeuroSymbolicRegularizer
 
 __all__ = [
     "MultiScaleCNN", "GraphConvolution", "GraphEncoder",
     "TemporalTransformerEncoder", "SpatialTemporalFusion",
     "NSGCLRepresentationEncoder", "ContrastiveProjectionHead",
-    "InfoNCELoss", "NSGCLContrastiveModel",
+    "InfoNCELoss", "NSGCLContrastiveModel", "NeuroSymbolicRegularizer",
 ]
