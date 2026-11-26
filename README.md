@@ -16,9 +16,11 @@ The repository contains initial DEAP preprocessing, functional-connectivity grap
 - Spatial-temporal concatenation, projection, and masked/unmasked pooling.
 - NSGCLRepresentationEncoder composes the CNN, GCN, temporal encoder, and fusion modules.
 - Contrastive projection head and symmetric cosine InfoNCE (NT-Xent) loss for two augmented views of each sample.
+- SameSampleTwoViewDataset, which independently augments the same EEG epoch twice and retains subject/trial/emotion metadata.
+- Integrated NSGCLModel with classification and projection heads, plus a combined supervised + contrastive + optional neuro-symbolic loss.
 - FAA and beta-band PLV feature extraction, plus a differentiable neuro-symbolic regularizer with explicit physiological sign and probability inputs.
 
-See docs/graph_and_encoder.md and docs/temporal_fusion.md for tensor shapes and assumptions.
+See docs/graph_and_encoder.md, docs/temporal_fusion.md, and docs/integrated_nsgcl.md for tensor shapes and assumptions.
 
 ## Installation
 
@@ -62,7 +64,7 @@ DEAP must be obtained from its official provider under the applicable data-use t
 
 ## Contrastive learning
 
-See docs/contrastive_learning.md for the positive/negative pairing assumption and loss definition. The current InfoNCE implementation treats two augmentations of the same sample as a positive pair and all other views in the minibatch as negatives. This is instance-level self-supervised pairing; confirm it matches the manuscript's actual pair-construction protocol before reporting it as the experimental method.
+See docs/integrated_nsgcl.md for the selected manuscript pairing strategy: two independent augmentations of the same EEG epoch form a positive pair. In a minibatch of N epochs, the paired cross-view embedding is the positive, while the other 2N-2 embeddings are negatives for each anchor. Subject, trial and emotion metadata are retained but do not determine pair membership.
 
 ## Neuro-symbolic regularization
 
@@ -70,7 +72,7 @@ See docs/neuro_symbolic_regularization.md for FAA/PLV definitions, loss equation
 
 ## Remaining work
 
-The classifier integration, exact manuscript-matched contrastive candidate-pool rules, complete LOSO training/evaluation, statistical analysis, and reproduction of manuscript tables remain to be implemented and validated.
+The integrated classifier and same-sample contrastive pair generation are implemented and have synthetic unit tests. The full LOSO training/evaluation pipeline, fold-wise preprocessing, experiment logging, statistical analysis, and reproduction of manuscript tables remain to be implemented and validated.
 
 ## Citation and license
 
