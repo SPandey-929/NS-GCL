@@ -45,6 +45,10 @@ The generator creates artificial random tensors and explicit synthetic provenanc
 
 Required arrays: `features` shaped `(N, sequence, electrodes, frequency_bins, time_bins)`; integer `labels`; `subject_ids`; integer `trial_ids`; `adjacency`; and scalar JSON `metadata_json`. Metadata records schema version, provenance (`synthetic` or `real`), dataset name, feature method, channel names, sampling rate, preprocessing record, and random seed. Synthetic archives require an explicit warning note. Use `data.feature_archive.load_feature_archive` to validate archives.
 
+## Wavelet feature-generation status
+
+The author has confirmed DWT with Daubechies-4 (`db4`) and separate frequency-band processing. The manuscript and current repository configuration files do not specify the decomposition level, coefficient representation, boundary mode, band-filter design, normalization, or final feature dimensions. No manuscript-specific wavelet extractor is implemented until the original experiment records/configuration establish these settings. See `docs/wavelet_feature_specification.md`.
+
 ## Dataset access and reviewer execution
 
 DEAP, SEED, and SEED-IV recordings are not included. Obtain them from their official providers and follow their access terms. Do not commit raw or restricted EEG files. See:
