@@ -1,9 +1,11 @@
-"""Preprocessing utilities for NS-GCL EEG experiments."""
-from .deap_loader import DEAP_CHANNELS, SELECTED_CHANNELS, load_deap_mat, select_channels
+"""Preprocessing package for NS-GCL."""
+from .deap_loader import load_deap_mat, select_channels
 from .filtering import bandpass_filter
 from .segmentation import segment_trials
 from .normalization import ChannelZScore
+from .ica import apply_manual_ica
+from .baseline import baseline_correct_trials
 
-__all__ = ["DEAP_CHANNELS", "SELECTED_CHANNELS", "load_deap_mat",
-           "select_channels", "bandpass_filter", "segment_trials",
-           "ChannelZScore"]
+__all__ = ["load_deap_mat", "select_channels", "bandpass_filter",
+           "segment_trials", "ChannelZScore", "apply_manual_ica",
+           "baseline_correct_trials"]
