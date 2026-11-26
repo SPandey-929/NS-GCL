@@ -1,18 +1,31 @@
 dataset: DEAP
 mat_data_key: data
 mat_labels_key: labels
-sampling_rate_hz: 128  # Confirm against the downloaded release.
+
+# Intended provider-preprocessed DEAP input; verify release metadata locally.
+sampling_rate_hz: 128
 selected_channels: [Fp1, Fp2, F3, Fz, F4, C3, Cz, C4, P3, Pz, P4]
+
+# Manuscript specifies 4-30 Hz cutoffs, but not filter design/order.
+# Butterworth SOS + zero-phase filtering, order 4, are provisional
+# repository implementation choices, NOT verified manuscript settings.
 bandpass:
   low_hz: 4.0
   high_hz: 30.0
+  design: butterworth_sosfiltfilt
   order: 4
+  status: provisional_not_manuscript_confirmed
+
 segmentation:
   window_seconds: 3.0
   overlap_seconds: 0.0
+
 normalization:
   method: channel_zscore
   fit_scope: training_subjects_only
-artifact_removal:
-  method: manual_ica
-  exclude_components: []  # Fill only after documented component inspection.
+
+# The selected input is already provider-preprocessed. Do not repeat
+# downsampling, ICA, EOG/artifact processing, or baseline subtraction.
+artifact_processing:
+  method: none
+  reason: provider_preprocessed_input_no_repeat_processing
