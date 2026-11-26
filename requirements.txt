@@ -1,0 +1,10 @@
+# Initial dependency baseline; exact versions will be pinned after implementation tests.
+numpy
+scipy
+pandas
+scikit-learn
+PyWavelets
+matplotlib
+PyYAML
+torch
+pytest
