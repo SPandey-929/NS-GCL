@@ -13,7 +13,10 @@ def test_integrated_model_forward_loss_and_backward():
     x2 = x1 + 0.02 * torch.randn_like(x1)
     adjacency = torch.eye(5)
     out1, out2 = model(x1, adjacency), model(x2, adjacency)
-    losses = model.loss(out1, out2, torch.tensor([0, 1, 0]))
+    losses = model.loss(
+        out1, out2, torch.tensor([0, 1, 0]),
+        subject_ids=["subject_1", "subject_1", "subject_2"],
+        trial_ids=[1, 1, 2])
     assert out1["logits"].shape == (3, 2)
     assert out1["projection"].shape == (3, 6)
     assert torch.isfinite(losses["loss"])
