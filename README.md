@@ -55,9 +55,11 @@ DEAP, SEED, and SEED-IV recordings are not included. Obtain them from their resp
 
 ## LOSO training scaffold
 
-The subject-wise training scaffold is `scripts/train_loso.py`. It expects a prepared NPZ feature archive; see `docs/loso_pipeline.md` for required arrays and the run command. The current scaffold performs training-fold-only normalization, two-view augmentation, supervised cross-entropy plus metadata-aware InfoNCE, validation-based checkpoint selection, and held-out subject evaluation. It does not yet integrate the neuro-symbolic penalty or build the feature archive directly from raw recordings.
+The subject-wise training scaffold is `scripts/train_loso.py`. It expects a prepared NPZ feature archive; see `docs/loso_pipeline.md` for required arrays and the run command. The current scaffold performs training-fold-only normalization, two-view augmentation, metadata-aware batch construction, supervised cross-entropy plus manuscript-specific InfoNCE, validation-based checkpoint selection, and held-out subject evaluation. It does not yet integrate the neuro-symbolic penalty or build the feature archive directly from raw recordings.
 
 ## Evidence and validation
+
+Training uses a metadata-aware batch sampler so each anchor has at least one eligible negative under the manuscript's emotion-OR-subject-OR-trial rule. The sampler fails early if the training data cannot provide such negatives.
 
 The repository reports three evidence categories separately:
 
