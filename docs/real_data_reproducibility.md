@@ -2,14 +2,12 @@
 
 ## Dataset access
 
-The repository does not redistribute EEG recordings.
+- DEAP: request data from the official [DEAP dataset page](https://www.eecs.qmul.ac.uk/mmv/datasets/deap/download.html) and comply with its access and data-use terms.
+- SEED / SEED-IV: use the official [SEED project portal](https://bcmi.sjtu.edu.cn/home/seed/) and comply with its terms.
 
-- DEAP: obtain the data through the official [DEAP dataset page](https://www.eecs.qmul.ac.uk/mmv/datasets/deap/download.html) and follow its access and data-use terms.
-- SEED / SEED-IV: use the official [SEED project portal](https://bcmi.sjtu.edu.cn/home/seed/) and follow its access and use requirements.
+The repository does not redistribute recordings. Keep downloaded data outside the public repository.
 
-Keep downloaded data outside the public repository. Do not commit raw recordings, restricted derived data, or credentials.
-
-## Environment
+## Environment and software tests
 
 ```bash
 python -m venv .venv
@@ -22,17 +20,37 @@ python -m pip install -r requirements.txt
 python -m pytest -q
 ```
 
-For GPU-specific PyTorch builds, use the command from the official PyTorch installation selector.
+## DEAP preprocessed MATLAB input
 
-## Confirmed DEAP preprocessing settings
+The intended input is the provider's preprocessed MATLAB release. A common file layout has `data` with shape `(40, 40, 8064)` and `labels` with shape `(40, 4)` per participant. The first 32 channels are EEG; the remaining eight are peripheral signals. The common 8064-sample trial contains 3 seconds of baseline plus 60 seconds of stimulus at 128 Hz. Confirm the exact release and metadata accompanying the downloaded files.
 
-The author has confirmed:
-- 4–30 Hz band-pass filtering.
-- Non-overlapping 3-second segmentation.
+The preprocessing function does not downsample, run ICA/EOG removal, or subtract a baseline again. It trims the initial 3 seconds if present, applies the manuscript's 4–30 Hz analysis filter, selects the manuscript's 11 named EEG electrodes, and segments the 60-second stimulus into 20 non-overlapping 3-second windows.
 
-The repository defaults match these two settings. The remaining steps (source file release, baseline handling, ICA component identification, wavelet details, graph parameters, and feature tensor layout) are not yet sufficiently specified to claim a complete manuscript-compliant conversion. See `docs/deap_preprocessing_audit.md`.
+Check one participant file locally:
 
-A 4–30 Hz filter cannot retain conventional delta 1–4 Hz or gamma 30–45 Hz. The manuscript's five-band description must be reconciled before implementing the time-frequency feature generator.
+```python
+from scipy.io import loadmat
+m = loadmat("data/DEAP/data_preprocessed_matlab/s01.mat")
+print(m["data"].shape, m["labels"].shape)
+```
+
+Run the preprocessing function:
+
+```python
+from preprocessing.deap_pipeline import prepare_preprocessed_deap_file
+windows, labels, window_meta = prepare_preprocessed_deap_file(
+    "data/DEAP/data_preprocessed_matlab/s01.mat"
+)
+print(windows.shape, labels.shape, window_meta.shape)
+```
+
+Expected shapes for the common 40-trial release: `(800, 11, 384)`, `(800, 4)`, and `(800, 2)`. This is filtered-window output, not yet the manuscript's final time-frequency feature archive.
+
+Run focused tests:
+
+```bash
+python -m pytest tests/test_deap_preprocessed_pipeline.py -q
+```
 
 ## Synthetic software check
 
@@ -41,27 +59,16 @@ python -m scripts.generate_synthetic_archive --output synthetic_data/synthetic_f
 python -m pytest tests/test_synthetic_archive.py -q
 ```
 
-This is an artificial-data software test, not a real-data experiment.
+Synthetic inputs are not EEG and must never be reported as experimental results.
 
-## Real-data archive status
+## Remaining feature-generation stage
 
-The current repository does not yet provide a complete raw-DEAP/SEED/SEED-IV-to-NPZ feature-generation command. Once the exact preprocessing and feature-generation protocol is finalized and implemented, an archive can be validated with:
+The repository still needs the exact manuscript wavelet implementation, graph construction settings, final tensor assembly, and archive-writing command. The current LOSO trainer must not be treated as a complete reproduction until a real archive has been generated and validated using those specifications.
 
-```python
-from data.feature_archive import load_feature_archive
-archive = load_feature_archive("path/to/real_features.npz")
-print(archive["features"].shape)
-print(archive["metadata"])
-```
-
-## LOSO command after archive preparation
+Once a verified real archive exists, the current training scaffold command is:
 
 ```bash
 python -m scripts.train_loso --data path/to/real_features.npz --config configs/loso_deap.yaml --output outputs/real_deap_loso
 ```
 
-The YAML currently contains initial software defaults, not confirmed manuscript hyperparameters. Do not interpret this command as a completed reproduction until a verified real-data archive and matching configuration are available.
-
-## Evidence separation
-
-Keep CI software tests, synthetic integration runs, and actual dataset experiments separate. Only the last category supports DEAP/SEED/SEED-IV performance claims. Record dataset release, preprocessing configuration, archive metadata, code commit, random seed, software environment, fold outputs, and checkpoints for each real run.
+Keep software tests, synthetic runs, and actual dataset results separate. Only actual experiments on authorized recordings can support manuscript performance claims.
