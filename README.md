@@ -15,6 +15,7 @@ The repository contains initial DEAP preprocessing, functional-connectivity grap
 - Batch-first Transformer temporal encoder with sinusoidal positional encoding.
 - Spatial-temporal concatenation, projection, and masked/unmasked pooling.
 - NSGCLRepresentationEncoder composes the CNN, GCN, temporal encoder, and fusion modules.
+- Contrastive projection head and symmetric cosine InfoNCE (NT-Xent) loss for two augmented views of each sample.
 
 See docs/graph_and_encoder.md and docs/temporal_fusion.md for tensor shapes and assumptions.
 
@@ -58,9 +59,13 @@ Tests use synthetic arrays and check basic software behavior, shapes, and gradie
 
 DEAP must be obtained from its official provider under the applicable data-use terms. See docs/deap_data_access.md. This repository does not host participant recordings. Do not commit raw or restricted EEG files.
 
+## Contrastive learning
+
+See docs/contrastive_learning.md for the positive/negative pairing assumption and loss definition. The current InfoNCE implementation treats two augmentations of the same sample as a positive pair and all other views in the minibatch as negatives. This is instance-level self-supervised pairing; confirm it matches the manuscript's actual pair-construction protocol before reporting it as the experimental method.
+
 ## Remaining work
 
-The InfoNCE objective, classifier, FAA/beta-PLV neuro-symbolic loss, complete LOSO training/evaluation, statistical analysis, and reproduction of manuscript tables remain to be implemented and validated.
+The classifier, FAA/beta-PLV neuro-symbolic loss, complete LOSO training/evaluation, statistical analysis, and reproduction of manuscript tables remain to be implemented and validated.
 
 ## Citation and license
 
