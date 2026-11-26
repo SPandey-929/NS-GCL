@@ -1,0 +1,14 @@
+# Initial configurable settings; verify against the final study protocol.
+sampling_rate_hz: 128
+connectivity:
+  measure: PLV
+  band_name: beta
+  low_hz: 13.0
+  high_hz: 30.0
+  filter_order: 4
+adjacency:
+  threshold: 0.0
+  top_k: 4
+  binarize: false
+  add_self_loops: true
+  normalization: symmetric
